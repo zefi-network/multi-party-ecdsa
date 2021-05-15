@@ -25,7 +25,6 @@ use paillier::{Add, Decrypt, Mul};
 use paillier::{DecryptionKey, EncryptionKey, Paillier, Randomness, RawCiphertext, RawPlaintext};
 use serde::{Deserialize, Serialize};
 
-use crate::protocols::multi_party_ecdsa::gg_2018::party_i::PartyPrivate;
 use crate::Error::{self, InvalidKey};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -158,29 +157,6 @@ impl MessageB {
             && ba_btag.get_element() == g_alpha.get_element()
         {
             Ok((alpha, alice_share.0.into_owned()))
-        } else {
-            Err(InvalidKey)
-        }
-    }
-
-    //  another version, supporting PartyPrivate therefore binding mta to gg18.
-    //  with the regular version mta can be used in general
-    pub fn verify_proofs_get_alpha_gg18(
-        &self,
-        private: &PartyPrivate,
-        a: &FE,
-    ) -> Result<FE, Error> {
-        let alice_share = private.decrypt(self.c.clone());
-        let g: GE = ECPoint::generator();
-        let alpha: FE = ECScalar::from(&alice_share.0);
-        let g_alpha = g * alpha;
-        let ba_btag = self.b_proof.pk * a + self.beta_tag_proof.pk;
-
-        if DLogProof::verify(&self.b_proof).is_ok()
-            && DLogProof::verify(&self.beta_tag_proof).is_ok()
-            && ba_btag.get_element() == g_alpha.get_element()
-        {
-            Ok(alpha)
         } else {
             Err(InvalidKey)
         }

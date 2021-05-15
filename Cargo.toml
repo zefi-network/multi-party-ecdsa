@@ -63,55 +63,9 @@ tag = "v0.5.1"
 optional = true
 
 [dev-dependencies]
-criterion = "0.3"
-rust-crypto = "0.2"
 hex = "0.4"
-rocket = { version = "0.4.2", default-features = false }
-rocket_contrib = "0.4.2"
 reqwest = { version = "0.9", default-features = false }
 uuid = { version = "0.8", features = ["v4"] }
 serde_json = "1.0"
 rand = "0.7"
 round-based = { version = "0.1.0", features = ["dev"] }
-
-[[example]]
-name = "sm_manager"
-
-[[example]]
-name = "gg18_sign_client"
-
-[[example]]
-name = "gg18_keygen_client"
-
-[[example]]
-name = "common"
-crate-type = ["lib"]
-
-[[bench]]
-name = "cclst_keygen"
-path = "benches/two_party_ecdsa/cclst_2019/keygen.rs"
-required-features = ["cclst"]
-harness = false
-
-[[bench]]
-name = "cclst_sign"
-path = "benches/two_party_ecdsa/cclst_2019/sign.rs"
-required-features = ["cclst"]
-harness = false
-
-
-[[bench]]
-name = "gg18"
-path = "benches/multi_party_ecdsa/gg18/keygen.rs"
-harness = false
-
-[[bench]]
-name = "lindel2017_keygen"
-path = "benches/two_party_ecdsa/lindell_2017/keygen.rs"
-harness = false
-
-
-[[bench]]
-name = "lindel2017_sign"
-path = "benches/two_party_ecdsa/lindell_2017/sign.rs"
-harness = false
