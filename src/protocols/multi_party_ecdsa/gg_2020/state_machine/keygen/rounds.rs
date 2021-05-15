@@ -40,6 +40,7 @@ impl Round0 {
             n: self.n,
         })
     }
+
     pub fn is_expensive(&self) -> bool {
         true
     }
@@ -77,9 +78,11 @@ impl Round1 {
             n: self.n,
         })
     }
+
     pub fn is_expensive(&self) -> bool {
         false
     }
+
     pub fn expects_messages(
         i: u16,
         n: u16,
@@ -150,9 +153,11 @@ impl Round2 {
             n: self.n,
         })
     }
+
     pub fn is_expensive(&self) -> bool {
         true
     }
+
     pub fn expects_messages(
         i: u16,
         n: u16,
@@ -219,9 +224,11 @@ impl Round3 {
             n: self.n,
         })
     }
+
     pub fn is_expensive(&self) -> bool {
         true
     }
+
     pub fn expects_messages(i: u16, n: u16) -> Store<P2PMsgs<(VerifiableSS<GE>, FE)>> {
         containers::P2PMsgsStore::new(i, n)
     }
@@ -281,9 +288,11 @@ impl Round4 {
 
         Ok(local_key)
     }
+
     pub fn is_expensive(&self) -> bool {
         true
     }
+
     pub fn expects_messages(i: u16, n: u16) -> Store<BroadcastMsgs<DLogProof<GE>>> {
         containers::BroadcastMsgsStore::new(i, n)
     }
