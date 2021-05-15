@@ -28,7 +28,7 @@ use rounds::{Round0, Round1, Round2, Round3, Round4};
 /// Successfully completed keygen protocol produces [LocalKey] that can be used in further
 /// [signing](super::sign::Sign) protocol.
 pub struct Keygen {
-    round: R,
+    round: Round,
 
     msgs1: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenBroadcastMessage1>>>,
     msgs2: Option<Store<BroadcastMsgs<gg_2020::party_i::KeyGenDecommitMessage1>>>,
@@ -63,7 +63,7 @@ impl Keygen {
             return Err(Error::InvalidPartyIndex);
         }
         let mut state = Self {
-            round: R::Round0(Round0 { party_i: i, t, n }),
+            round: Round::Round0(Round0 { party_i: i, t, n }),
 
             msgs1: Some(Round1::expects_messages(i, n)),
             msgs2: Some(Round2::expects_messages(i, n)),
@@ -95,80 +95,80 @@ impl Keygen {
         let store3_wants_more = self.msgs3.as_ref().map(|s| s.wants_more()).unwrap_or(false);
         let store4_wants_more = self.msgs4.as_ref().map(|s| s.wants_more()).unwrap_or(false);
 
-        let next_state: R;
-        let try_again: bool = match replace(&mut self.round, R::Gone) {
-            R::Round0(round) if !round.is_expensive() || may_block => {
+        let next_state: Round;
+        let try_again: bool = match replace(&mut self.round, Round::Gone) {
+            Round::Round0(round) if !round.is_expensive() || may_block => {
                 next_state = round
                     .proceed(self.gmap_queue(M::Round1))
-                    .map(R::Round1)
+                    .map(Round::Round1)
                     .map_err(Error::ProceedRound)?;
                 true
             }
-            s @ R::Round0(_) => {
+            s @ Round::Round0(_) => {
                 next_state = s;
                 false
             }
-            R::Round1(round) if !store1_wants_more && (!round.is_expensive() || may_block) => {
+            Round::Round1(round) if !store1_wants_more && (!round.is_expensive() || may_block) => {
                 let store = self.msgs1.take().ok_or(InternalError::StoreGone)?;
                 let msgs = store
                     .finish()
                     .map_err(InternalError::RetrieveRoundMessages)?;
                 next_state = round
                     .proceed(msgs, self.gmap_queue(M::Round2))
-                    .map(R::Round2)
+                    .map(Round::Round2)
                     .map_err(Error::ProceedRound)?;
                 true
             }
-            s @ R::Round1(_) => {
+            s @ Round::Round1(_) => {
                 next_state = s;
                 false
             }
-            R::Round2(round) if !store2_wants_more && (!round.is_expensive() || may_block) => {
+            Round::Round2(round) if !store2_wants_more && (!round.is_expensive() || may_block) => {
                 let store = self.msgs2.take().ok_or(InternalError::StoreGone)?;
                 let msgs = store
                     .finish()
                     .map_err(InternalError::RetrieveRoundMessages)?;
                 next_state = round
                     .proceed(msgs, self.gmap_queue(M::Round3))
-                    .map(R::Round3)
+                    .map(Round::Round3)
                     .map_err(Error::ProceedRound)?;
                 true
             }
-            s @ R::Round2(_) => {
+            s @ Round::Round2(_) => {
                 next_state = s;
                 false
             }
-            R::Round3(round) if !store3_wants_more && (!round.is_expensive() || may_block) => {
+            Round::Round3(round) if !store3_wants_more && (!round.is_expensive() || may_block) => {
                 let store = self.msgs3.take().ok_or(InternalError::StoreGone)?;
                 let msgs = store
                     .finish()
                     .map_err(InternalError::RetrieveRoundMessages)?;
                 next_state = round
                     .proceed(msgs, self.gmap_queue(M::Round4))
-                    .map(R::Round4)
+                    .map(Round::Round4)
                     .map_err(Error::ProceedRound)?;
                 true
             }
-            s @ R::Round3(_) => {
+            s @ Round::Round3(_) => {
                 next_state = s;
                 false
             }
-            R::Round4(round) if !store4_wants_more && (!round.is_expensive() || may_block) => {
+            Round::Round4(round) if !store4_wants_more && (!round.is_expensive() || may_block) => {
                 let store = self.msgs4.take().ok_or(InternalError::StoreGone)?;
                 let msgs = store
                     .finish()
                     .map_err(InternalError::RetrieveRoundMessages)?;
                 next_state = round
                     .proceed(msgs)
-                    .map(R::Final)
+                    .map(Round::Final)
                     .map_err(Error::ProceedRound)?;
                 true
             }
-            s @ R::Round4(_) => {
+            s @ Round::Round4(_) => {
                 next_state = s;
                 false
             }
-            s @ R::Final(_) | s @ R::Gone => {
+            s @ Round::Final(_) | s @ Round::Gone => {
                 next_state = s;
                 false
             }
@@ -274,12 +274,12 @@ impl StateMachine for Keygen {
         let store4_wants_more = self.msgs4.as_ref().map(|s| s.wants_more()).unwrap_or(false);
 
         match &self.round {
-            R::Round0(_) => true,
-            R::Round1(_) => !store1_wants_more,
-            R::Round2(_) => !store2_wants_more,
-            R::Round3(_) => !store3_wants_more,
-            R::Round4(_) => !store4_wants_more,
-            R::Final(_) | R::Gone => false,
+            Round::Round0(_) => true,
+            Round::Round1(_) => !store1_wants_more,
+            Round::Round2(_) => !store2_wants_more,
+            Round::Round3(_) => !store3_wants_more,
+            Round::Round4(_) => !store4_wants_more,
+            Round::Final(_) | Round::Gone => false,
         }
     }
 
@@ -296,30 +296,30 @@ impl StateMachine for Keygen {
     }
 
     fn is_finished(&self) -> bool {
-        matches!(self.round, R::Final(_))
+        matches!(self.round, Round::Final(_))
     }
 
     fn pick_output(&mut self) -> Option<Result<Self::Output>> {
         match self.round {
-            R::Final(_) => (),
-            R::Gone => return Some(Err(Error::DoublePickOutput)),
+            Round::Final(_) => (),
+            Round::Gone => return Some(Err(Error::DoublePickOutput)),
             _ => return None,
         }
 
-        match replace(&mut self.round, R::Gone) {
-            R::Final(result) => Some(Ok(result)),
+        match replace(&mut self.round, Round::Gone) {
+            Round::Final(result) => Some(Ok(result)),
             _ => unreachable!("guaranteed by match expression above"),
         }
     }
 
     fn current_round(&self) -> u16 {
         match &self.round {
-            R::Round0(_) => 0,
-            R::Round1(_) => 1,
-            R::Round2(_) => 2,
-            R::Round3(_) => 3,
-            R::Round4(_) => 4,
-            R::Final(_) | R::Gone => 5,
+            Round::Round0(_) => 0,
+            Round::Round1(_) => 1,
+            Round::Round2(_) => 2,
+            Round::Round3(_) => 3,
+            Round::Round4(_) => 4,
+            Round::Final(_) | Round::Gone => 5,
         }
     }
 
@@ -339,13 +339,13 @@ impl StateMachine for Keygen {
 impl fmt::Debug for Keygen {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let current_round = match &self.round {
-            R::Round0(_) => "0",
-            R::Round1(_) => "1",
-            R::Round2(_) => "2",
-            R::Round3(_) => "3",
-            R::Round4(_) => "4",
-            R::Final(_) => "[Final]",
-            R::Gone => "[Gone]",
+            Round::Round0(_) => "0",
+            Round::Round1(_) => "1",
+            Round::Round2(_) => "2",
+            Round::Round3(_) => "3",
+            Round::Round4(_) => "4",
+            Round::Final(_) => "[Final]",
+            Round::Gone => "[Gone]",
         };
         let msgs1 = match self.msgs1.as_ref() {
             Some(msgs) => format!("[{}/{}]", msgs.messages_received(), msgs.messages_total()),
@@ -378,7 +378,7 @@ impl fmt::Debug for Keygen {
 
 // Rounds
 
-enum R {
+enum Round {
     Round0(Round0),
     Round1(Round1),
     Round2(Round2),
