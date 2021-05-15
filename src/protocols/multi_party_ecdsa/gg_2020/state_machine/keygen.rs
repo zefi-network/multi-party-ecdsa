@@ -82,7 +82,7 @@ impl Keygen {
 
     fn gmap_queue<'a, T, F>(&'a mut self, mut f: F) -> impl Push<Msg<T>> + 'a
     where
-        F: FnMut(T) -> M + 'a,
+        F: FnMut(T) -> Message + 'a,
     {
         (&mut self.msgs_queue).gmap(move |m: Msg<T>| m.map_body(|m| ProtocolMessage(f(m))))
     }
@@ -99,7 +99,7 @@ impl Keygen {
         let try_again: bool = match replace(&mut self.round, Round::Gone) {
             Round::Round0(round) if !round.is_expensive() || may_block => {
                 next_state = round
-                    .proceed(self.gmap_queue(M::Round1))
+                    .proceed(self.gmap_queue(Message::Round1))
                     .map(Round::Round1)
                     .map_err(Error::ProceedRound)?;
                 true
@@ -114,7 +114,7 @@ impl Keygen {
                     .finish()
                     .map_err(InternalError::RetrieveRoundMessages)?;
                 next_state = round
-                    .proceed(msgs, self.gmap_queue(M::Round2))
+                    .proceed(msgs, self.gmap_queue(Message::Round2))
                     .map(Round::Round2)
                     .map_err(Error::ProceedRound)?;
                 true
@@ -129,7 +129,7 @@ impl Keygen {
                     .finish()
                     .map_err(InternalError::RetrieveRoundMessages)?;
                 next_state = round
-                    .proceed(msgs, self.gmap_queue(M::Round3))
+                    .proceed(msgs, self.gmap_queue(Message::Round3))
                     .map(Round::Round3)
                     .map_err(Error::ProceedRound)?;
                 true
@@ -144,7 +144,7 @@ impl Keygen {
                     .finish()
                     .map_err(InternalError::RetrieveRoundMessages)?;
                 next_state = round
-                    .proceed(msgs, self.gmap_queue(M::Round4))
+                    .proceed(msgs, self.gmap_queue(Message::Round4))
                     .map(Round::Round4)
                     .map_err(Error::ProceedRound)?;
                 true
@@ -192,7 +192,7 @@ impl StateMachine for Keygen {
         let current_round = self.current_round();
 
         match msg.body {
-            ProtocolMessage(M::Round1(m)) => {
+            ProtocolMessage(Message::Round1(m)) => {
                 let store = self
                     .msgs1
                     .as_mut()
@@ -209,7 +209,7 @@ impl StateMachine for Keygen {
                     .map_err(Error::HandleMessage)?;
                 self.proceed_round(false)
             }
-            ProtocolMessage(M::Round2(m)) => {
+            ProtocolMessage(Message::Round2(m)) => {
                 let store = self
                     .msgs2
                     .as_mut()
@@ -226,7 +226,7 @@ impl StateMachine for Keygen {
                     .map_err(Error::HandleMessage)?;
                 self.proceed_round(false)
             }
-            ProtocolMessage(M::Round3(m)) => {
+            ProtocolMessage(Message::Round3(m)) => {
                 let store = self
                     .msgs3
                     .as_mut()
@@ -243,7 +243,7 @@ impl StateMachine for Keygen {
                     .map_err(Error::HandleMessage)?;
                 self.proceed_round(false)
             }
-            ProtocolMessage(M::Round4(m)) => {
+            ProtocolMessage(Message::Round4(m)) => {
                 let store = self
                     .msgs4
                     .as_mut()
@@ -394,10 +394,10 @@ enum Round {
 ///
 /// Hides actual messages structure so it could be changed without breaking semver policy.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProtocolMessage(M);
+pub struct ProtocolMessage(Message);
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-enum M {
+enum Message {
     Round1(gg_2020::party_i::KeyGenBroadcastMessage1),
     Round2(gg_2020::party_i::KeyGenDecommitMessage1),
     Round3((VerifiableSS<GE>, FE)),
