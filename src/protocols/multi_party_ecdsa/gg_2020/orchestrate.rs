@@ -56,7 +56,8 @@ use zk_paillier::zkproofs::DLogStatement;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenStage1Input {
-    pub index: usize, // participant indexes start from zero.
+    /// 0-based index
+    pub index: usize,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KeyGenStage1Result {
